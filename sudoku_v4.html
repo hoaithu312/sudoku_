@@ -14,18 +14,10 @@
     <style>
         body {
             font-family: 'Outfit', sans-serif;
-            background: linear-gradient(-45deg, #c7d2fe, #fbcfe8, #bae6fd, #e9d5ff);
-            background-size: 400% 400%;
-            animation: gradient-bg 15s ease infinite;
+            background: linear-gradient(-45deg, #e0e7ff, #fbcfe8, #bae6fd, #f3e8ff);
             min-height: 100vh;
             overflow-x: hidden;
             color: #1e293b;
-        }
-        
-        @keyframes gradient-bg {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
         }
 
         /* Ambient floating orbs */
@@ -160,17 +152,18 @@
         /* Glass Panel Styling */
         .glass-panel {
             background: rgba(255, 255, 255, 0.45);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.6);
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+            transform: translateZ(0); /* Kích hoạt hardware acceleration */
         }
         
         .glass-button {
-            background: rgba(255, 255, 255, 0.5);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            background: rgba(255, 255, 255, 0.85); /* Tăng độ đục để bù cho việc bỏ mờ */
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            /* Bỏ backdrop-filter ở nút bấm nhỏ để giảm lag trên mobile */
         }
         .glass-button:hover {
             background: rgba(255, 255, 255, 0.8);
@@ -248,9 +241,9 @@
             </div>
         </div>
 
-        <!-- Bàn cờ Sudoku (được bọc trong relative wrapper để hỗ trợ overlay làm mờ) -->
+        <!-- Bàn cờ Sudoku -->
         <div class="relative w-full mb-4">
-            <div id="grid-container" class="grid border-[3px] border-indigo-300/50 rounded-2xl overflow-hidden w-full bg-white/20 shadow-[0_10px_30px_rgba(99,102,241,0.2)] backdrop-blur-md" style="aspect-ratio: 1 / 1;">
+            <div id="grid-container" class="grid border-[3px] border-indigo-300/50 rounded-2xl overflow-hidden w-full bg-white/40 shadow-[0_10px_30px_rgba(99,102,241,0.2)]" style="aspect-ratio: 1 / 1; transform: translateZ(0);">
                 <!-- Các ô input được sinh ra bằng JS -->
             </div>
             
@@ -340,8 +333,7 @@
                     <thead>
                         <tr class="border-b border-indigo-200 text-[10px] uppercase font-bold tracking-wider text-indigo-500">
                             <th class="py-1 px-1 text-center w-10">Hạng</th>
-                            <th class="py-1 px-1">Người chơi</th>
-                            <th class="py-1 px-1 text-center">Cấp độ</th>
+                            <th class="py-1 px-1" colspan="2">Người chơi</th>
                             <th class="py-1 px-1 text-right w-16">Thời gian</th>
                         </tr>
                     </thead>
@@ -1039,7 +1031,16 @@
                     scores = scores.filter(s => s.size === filterVal);
                 }
                 
-                scores.sort((a, b) => a.seconds - b.seconds);
+                scores.sort((a, b) => {
+                    if (a.size !== b.size) return a.size - b.size; // Sắp xếp theo lưới (3x3 -> 9x9)
+                    
+                    const diffWeights = { 'easy': 1, 'medium': 2, 'hard': 3, 'very_hard': 4 };
+                    let wA = diffWeights[a.diffValue] || 0;
+                    let wB = diffWeights[b.diffValue] || 0;
+                    if (wA !== wB) return wA - wB; // Sắp xếp theo độ khó (Dễ -> Khó)
+                    
+                    return a.seconds - b.seconds; // Sắp xếp theo thời gian (nhanh nhất)
+                });
                 
                 let tbody = document.getElementById('leaderboard-list');
                 tbody.innerHTML = '';
@@ -1049,20 +1050,33 @@
                     return;
                 }
                 
-                scores.forEach((s, idx) => {
-                    let tr = document.createElement('tr');
-                    tr.className = "border-b border-indigo-100 hover:bg-white/30 text-xs";
+                let currentGroupKey = '';
+                let rankInGroup = 0;
+
+                scores.forEach((s) => {
+                    let groupKey = `${s.size}x${s.size} - ${s.diffText}`;
+                    if (groupKey !== currentGroupKey) {
+                        currentGroupKey = groupKey;
+                        rankInGroup = 0; // Reset rank cho nhóm mới
+                        let trHeader = document.createElement('tr');
+                        trHeader.className = "bg-indigo-500/10 text-indigo-800 font-bold text-[10px] tracking-widest uppercase border-b border-indigo-200";
+                        trHeader.innerHTML = `<td colspan="4" class="py-1 px-2 text-center">${groupKey}</td>`;
+                        tbody.appendChild(trHeader);
+                    }
                     
-                    let rankIcon = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`;
-                    let rankClass = idx < 3 ? 'text-sm font-bold' : '';
+                    let tr = document.createElement('tr');
+                    tr.className = "border-b border-indigo-100/50 hover:bg-white/30 text-xs transition-colors";
+                    
+                    let rankIcon = rankInGroup === 0 ? '🥇' : rankInGroup === 1 ? '🥈' : rankInGroup === 2 ? '🥉' : `${rankInGroup + 1}`;
+                    let rankClass = rankInGroup < 3 ? 'text-sm font-bold' : '';
                     
                     tr.innerHTML = `
                         <td class="py-2 px-1 text-center ${rankClass}">${rankIcon}</td>
-                        <td class="py-2 px-1 font-semibold truncate max-w-[80px]" title="${s.name}">${s.name}</td>
-                        <td class="py-2 px-1 text-center text-[10px] text-indigo-700">${s.size}x${s.size}<br><span class="opacity-70">${s.diffText}</span></td>
+                        <td class="py-2 px-1 font-semibold truncate max-w-[120px]" title="${s.name}" colspan="2">${s.name}</td>
                         <td class="py-2 px-1 text-right font-mono text-pink-600 font-bold">${s.timeStr}</td>
                     `;
                     tbody.appendChild(tr);
+                    rankInGroup++;
                 });
             }
 
