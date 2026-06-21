@@ -49,10 +49,35 @@
             50% { transform: translateY(30px) scale(0.9); }
         }
         
-        /* Ẩn con trỏ chuột trong ô nhập liệu */
+        /* Ẩn con trỏ chuột trong ô nhập liệu (khôi phục native vertical align) */
         .sudoku-cell {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             caret-color: transparent;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .sudoku-cell input {
+            width: 100%;
+            height: 100%;
+            background: transparent !important;
+            border: none !important;
+            outline: none !important;
+            text-align: center;
+            font-family: inherit;
+            font-size: inherit;
+            font-weight: inherit;
+            color: inherit;
+            padding: 0;
+            margin: 0;
+            caret-color: transparent;
+            cursor: pointer;
+            box-shadow: none !important;
+            display: block;
         }
         
         /* Trạng thái tạm dừng - Ẩn hoàn toàn số */
@@ -62,7 +87,7 @@
         }
 
         /* Hiệu ứng khi được chọn/focus */
-        .sudoku-cell:focus {
+        .sudoku-cell:focus-within {
             z-index: 20;
             box-shadow: 0 0 15px rgba(236, 72, 153, 0.4); /* Pink glow */
             border-radius: 6px;
@@ -72,21 +97,19 @@
         
         /* Cảnh báo trùng lặp */
         @keyframes blink-bg-red {
-            0%, 100% { background-color: rgba(254, 226, 226, 0.9); box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.2); }
-            50% { background-color: rgba(254, 202, 202, 0.9); box-shadow: inset 0 0 20px rgba(239, 68, 68, 0.5); }
+            0%, 100% { background-color: rgba(254, 226, 226, 0.9); }
+            50% { background-color: rgba(254, 202, 202, 0.9); }
         }
         .duplicate {
             color: #ef4444 !important;
             border-color: #ef4444 !important;
             animation: blink-bg-red 1.2s infinite !important;
             z-index: 15;
-            text-shadow: 0 0 5px rgba(239, 68, 68, 0.3);
         }
         
         /* Các ô cùng hàng, cột hoặc khối */
         .highlight-group {
             background-color: rgba(224, 231, 255, 0.6) !important;
-            backdrop-filter: blur(4px);
         }
         
         /* Ô đang được chọn (không focus) */
@@ -177,6 +200,8 @@
         <!-- Công cụ điều khiển -->
         <div class="flex flex-wrap justify-between items-center gap-2 mb-4 bg-white/40 p-2 rounded-2xl border border-white/50 backdrop-blur-md shadow-inner">
             <select id="size-select" class="px-2 py-1.5 text-sm sm:text-base bg-white/70 rounded-xl border border-white/50 shadow-sm focus:ring-2 focus:ring-pink-400 outline-none font-semibold text-indigo-800 cursor-pointer transition hover:bg-white">
+                <option value="3">Lưới 3x3</option>
+                <option value="4">Lưới 4x4</option>
                 <option value="5">Lưới 5x5</option>
                 <option value="6">Lưới 6x6</option>
                 <option value="7">Lưới 7x7</option>
@@ -188,6 +213,7 @@
                 <option value="easy">Dễ</option>
                 <option value="medium" selected>Trung Bình</option>
                 <option value="hard">Khó</option>
+                <option value="very_hard">Rất Khó</option>
             </select>
             
             <div class="flex items-center text-base sm:text-lg font-bold text-pink-600 bg-white/70 px-2 py-1.5 rounded-xl shadow-sm border border-white/50">
@@ -226,24 +252,84 @@
                 Làm Lại
             </button>
         </div>
+        
+        <!-- Bảng xếp hạng button -->
+        <button id="btn-leaderboard" class="w-full mt-3 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-bold text-base hover:opacity-90 active:scale-95 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2">
+            🏆 Bảng Xếp Hạng
+        </button>
     </div>
 
     <!-- Modal Chúc mừng -->
     <div id="win-modal" class="fixed inset-0 bg-indigo-900/40 backdrop-blur-md hidden items-center justify-center z-50 transition-opacity duration-300 opacity-0">
-        <div id="win-content" class="glass-panel p-8 rounded-[2.5rem] text-center max-w-sm w-full mx-4 transform scale-90 transition-transform duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.2)]">
-            <div class="text-7xl mb-4 animate-bounce">🎉</div>
-            <h2 class="text-5xl font-black text-gradient-animated mb-2">Tuyệt Vời!</h2>
-            <p class="text-indigo-800 font-bold mb-6">Bạn đã giải mã thành công!</p>
+        <div id="win-content" class="glass-panel p-6 rounded-[2.5rem] text-center max-w-sm w-full mx-4 transform scale-90 transition-transform duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.2)]">
+            <div class="text-6xl mb-3 animate-bounce">🎉</div>
+            <h2 class="text-4xl font-black text-gradient-animated mb-2">Tuyệt Vời!</h2>
+            <p class="text-indigo-800 font-bold mb-4">Bạn đã giải mã thành công!</p>
             
-            <div class="bg-white/50 rounded-2xl p-5 mb-8 text-left space-y-3 text-indigo-900 border border-white/60 shadow-inner">
-                <div class="flex justify-between items-center"><span class="font-semibold text-indigo-500">Kích thước</span> <strong id="stat-size" class="text-xl bg-white px-3 py-1 rounded-lg shadow-sm">9x9</strong></div>
-                <div class="flex justify-between items-center"><span class="font-semibold text-indigo-500">Độ khó</span> <strong id="stat-diff" class="text-xl bg-white px-3 py-1 rounded-lg shadow-sm">Trung bình</strong></div>
-                <div class="flex justify-between items-center"><span class="font-semibold text-pink-500">Thời gian</span> <strong id="stat-time" class="text-xl font-mono text-pink-600 bg-white px-3 py-1 rounded-lg shadow-sm">00:00</strong></div>
+            <div class="bg-white/50 rounded-2xl p-4 mb-6 text-left space-y-2.5 text-indigo-900 border border-white/60 shadow-inner">
+                <div class="flex justify-between items-center"><span class="font-semibold text-indigo-500">Kích thước</span> <strong id="stat-size" class="text-lg bg-white px-3 py-0.5 rounded-lg shadow-sm">9x9</strong></div>
+                <div class="flex justify-between items-center"><span class="font-semibold text-indigo-500">Độ khó</span> <strong id="stat-diff" class="text-lg bg-white px-3 py-0.5 rounded-lg shadow-sm">Trung bình</strong></div>
+                <div class="flex justify-between items-center"><span class="font-semibold text-pink-500">Thời gian</span> <strong id="stat-time" class="text-lg font-mono text-pink-600 bg-white px-3 py-0.5 rounded-lg shadow-sm">00:00</strong></div>
+                
+                <!-- Nhập tên -->
+                <div class="flex flex-col gap-1 mt-1">
+                    <label for="player-name" class="font-semibold text-indigo-500 text-xs">Tên của bạn:</label>
+                    <input type="text" id="player-name" placeholder="Người chơi vô danh" class="px-2 py-1 bg-white rounded-lg border border-indigo-200 outline-none focus:ring-2 focus:ring-pink-400 font-semibold text-indigo-800 text-sm">
+                </div>
             </div>
             
-            <button id="btn-play-again" class="w-full py-4 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-[0_10px_20px_rgba(236,72,153,0.4)] text-xl hover:shadow-[0_15px_30px_rgba(236,72,153,0.6)] hover:-translate-y-1">
-                🚀 Chơi Tiếp Nào!
+            <button id="btn-play-again" class="w-full py-3 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-[0_10px_20px_rgba(236,72,153,0.4)] text-lg hover:shadow-[0_15px_30px_rgba(236,72,153,0.6)] hover:-translate-y-1">
+                🚀 Lưu và Chơi Tiếp!
             </button>
+        </div>
+    </div>
+
+    <!-- Modal Bảng xếp hạng -->
+    <div id="leaderboard-modal" class="fixed inset-0 bg-indigo-900/40 backdrop-blur-md hidden items-center justify-center z-50 transition-opacity duration-300 opacity-0">
+        <div id="leaderboard-content" class="glass-panel p-5 rounded-[2rem] max-w-sm w-full mx-4 transform scale-90 transition-transform duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.2)] flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-2xl font-black text-gradient-animated flex items-center gap-2">🏆 Xếp Hạng</h2>
+                <button id="btn-close-leaderboard" class="text-indigo-800 hover:text-rose-600 text-xl font-bold transition">&times;</button>
+            </div>
+            
+            <!-- Bộ lọc kích thước -->
+            <div class="flex gap-1 mb-3 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" id="leaderboard-size-tabs">
+                <button class="tab-btn px-2 py-0.5 bg-indigo-600 text-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="all">Tất cả</button>
+                <button class="tab-btn px-2 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="3">3x3</button>
+                <button class="tab-btn px-2 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="4">4x4</button>
+                <button class="tab-btn px-2 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="5">5x5</button>
+                <button class="tab-btn px-2 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="6">6x6</button>
+                <button class="tab-btn px-2 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="7">7x7</button>
+                <button class="tab-btn px-2 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="8">8x8</button>
+                <button class="tab-btn px-2 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="9">9x9</button>
+            </div>
+
+            <!-- Bảng hiển thị -->
+            <div class="flex-1 overflow-y-auto mb-3 border border-white/50 rounded-xl bg-white/30 p-2 shadow-inner max-h-[30vh]">
+                <table class="w-full text-left border-collapse text-indigo-950">
+                    <thead>
+                        <tr class="border-b border-indigo-200 text-[10px] uppercase font-bold tracking-wider text-indigo-500">
+                            <th class="py-1 px-1 text-center w-10">Hạng</th>
+                            <th class="py-1 px-1">Người chơi</th>
+                            <th class="py-1 px-1 text-center">Cấp độ</th>
+                            <th class="py-1 px-1 text-right w-16">Thời gian</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-list">
+                        <!-- JS chèn dữ liệu -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Nút Export/Import -->
+            <div class="flex justify-between items-center mt-1">
+                <button id="btn-export-scores" class="text-[11px] text-indigo-700 bg-white/50 hover:bg-white px-3 py-1.5 rounded-lg font-bold shadow-sm transition-all border border-indigo-100">⬇️ Tải file lưu</button>
+                <label class="text-[11px] text-indigo-700 bg-white/50 hover:bg-white px-3 py-1.5 rounded-lg font-bold shadow-sm transition-all border border-indigo-100 cursor-pointer">
+                    ⬆️ Mở file lưu
+                    <input type="file" id="btn-import-scores" accept=".json" class="hidden">
+                </label>
+            </div>
+
         </div>
     </div>
 
@@ -320,8 +406,9 @@
                 let cellsToRemove = 0;
                 
                 if (difficulty === 'easy') cellsToRemove = Math.floor(size * size * 0.35);
-                else if (difficulty === 'medium') cellsToRemove = Math.floor(size * size * 0.5);
-                else if (difficulty === 'hard') cellsToRemove = Math.floor(size * size * 0.65);
+                else if (difficulty === 'medium') cellsToRemove = Math.floor(size * size * 0.6);
+                else if (difficulty === 'hard') cellsToRemove = Math.floor(size * size * 0.75);
+                else if (difficulty === 'very_hard') cellsToRemove = Math.floor(size * size * 0.85);
                 
                 let removed = 0;
                 while (removed < cellsToRemove) {
@@ -345,17 +432,16 @@
                 for (let r = 0; r < gridSize; r++) {
                     for (let c = 0; c < gridSize; c++) {
                         let val = currentPuzzle[r][c];
-                        let input = document.createElement('input');
-                        input.type = 'text';
-                        input.inputMode = 'none';
-                        input.dataset.row = r;
-                        input.dataset.col = c;
+                        
+                        // Tạo phần tử bọc (wrapper div) đại diện cho ô sudoku
+                        let cellWrapper = document.createElement('div');
+                        cellWrapper.dataset.row = r;
+                        cellWrapper.dataset.col = c;
                         
                         let classes = [
                             'sudoku-cell', 'w-full', 'h-full', 'text-center', 
                             gridSize >= 8 ? 'text-base sm:text-xl' : 'text-xl sm:text-2xl', 
-                            'font-bold', 'm-0', 'pb-0.5', 'cursor-pointer', 'bg-white/40',
-                            'flex', 'items-center', 'justify-center'
+                            'font-bold', 'm-0', 'p-0', 'cursor-pointer', 'bg-white/40'
                         ];
                         
                         if (blocks.r * blocks.c === gridSize) {
@@ -375,6 +461,11 @@
                             if (c !== gridSize - 1) classes.push('border-r', 'border-r-indigo-200/50');
                         }
                         
+                        // Tạo phần tử input thực tế bên trong
+                        let input = document.createElement('input');
+                        input.type = 'text';
+                        input.inputMode = 'none';
+                        
                         if (val !== 0) {
                             classes.push('fixed-cell');
                             input.value = val;
@@ -384,10 +475,26 @@
                             input.value = '';
                         }
                         
-                        input.style.animationDelay = `${(r * gridSize + c) * 4}ms`;
+                        cellWrapper.style.animationDelay = `${(r * gridSize + c) * 4}ms`;
                         classes.push('animate-pop');
 
-                        input.className = classes.join(' ');
+                        cellWrapper.className = classes.join(' ');
+                        cellWrapper.appendChild(input);
+                        
+                        // Định nghĩa getter/setter/focus trên wrapper để tương thích ngược hoàn hảo
+                        Object.defineProperty(cellWrapper, 'value', {
+                            get() { return input.value; },
+                            set(val) { input.value = val; },
+                            configurable: true
+                        });
+                        Object.defineProperty(cellWrapper, 'readOnly', {
+                            get() { return input.readOnly; },
+                            set(val) { input.readOnly = val; },
+                            configurable: true
+                        });
+                        cellWrapper.focus = function(options) {
+                            input.focus(options);
+                        };
                         
                         input.addEventListener('focus', () => {
                             if (isPaused) {
@@ -403,8 +510,8 @@
                                 e.preventDefault();
                                 return;
                             }
-                            let cellR = parseInt(input.dataset.row);
-                            let cellC = parseInt(input.dataset.col);
+                            let cellR = r;
+                            let cellC = c;
                             
                             if (e.key === 'ArrowUp') {
                                 e.preventDefault();
@@ -454,7 +561,7 @@
                             checkDuplicates();
                         });
                         
-                        gridContainer.appendChild(input);
+                        gridContainer.appendChild(cellWrapper);
                     }
                 }
             }
@@ -463,7 +570,8 @@
                 numpad.innerHTML = '';
                 for (let i = 1; i <= gridSize; i++) {
                     let btn = document.createElement('button');
-                    btn.className = 'glass-button py-2 sm:py-3 text-indigo-800 font-black text-lg sm:text-xl rounded-xl transition-all';
+                    btn.className = 'glass-button py-2 sm:py-3 font-black text-lg sm:text-xl rounded-xl transition-all';
+                    btn.style.color = '#0d9488';
                     btn.innerText = i;
                     btn.onclick = () => fillNumber(i);
                     numpad.appendChild(btn);
@@ -516,7 +624,7 @@
             }
 
             document.addEventListener('click', (e) => {
-                if (!e.target.classList.contains('sudoku-cell') && !e.target.closest('#numpad')) {
+                if (!e.target.closest('.sudoku-cell') && !e.target.closest('#numpad')) {
                     document.querySelectorAll('.sudoku-cell').forEach(el => {
                         el.classList.remove('highlight-group', 'highlight-cell');
                     });
@@ -734,6 +842,8 @@
             };
 
             document.getElementById('btn-play-again').onclick = () => {
+                saveCurrentScore();
+                
                 let modal = document.getElementById('win-modal');
                 let content = document.getElementById('win-content');
                 
@@ -748,6 +858,157 @@
                     initGame();
                 }, 500);
             };
+
+            // Quản lý cơ sở dữ liệu JSON LocalStorage & Bảng xếp hạng
+            let currentFilterSize = 'all';
+
+            document.getElementById('btn-export-scores').onclick = () => {
+                let scores = localStorage.getItem('sudoku_scores') || '[]';
+                let blob = new Blob([scores], {type: "application/json"});
+                let url = URL.createObjectURL(blob);
+                let a = document.createElement('a');
+                a.href = url;
+                a.download = "sudoku_scores_backup.json";
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            document.getElementById('btn-import-scores').onchange = (e) => {
+                let file = e.target.files[0];
+                if (!file) return;
+                let reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        let data = JSON.parse(event.target.result);
+                        if (Array.isArray(data)) {
+                            let existing = JSON.parse(localStorage.getItem('sudoku_scores')) || [];
+                            let merged = [...existing, ...data];
+                            let unique = merged.filter((v,i,a)=>a.findIndex(t=>(t.name === v.name && t.timeStr === v.timeStr && t.date === v.date))===i);
+                            localStorage.setItem('sudoku_scores', JSON.stringify(unique));
+                            renderLeaderboard();
+                            alert("Đã phục hồi dữ liệu thành công!");
+                        }
+                    } catch (err) {
+                        alert("File không hợp lệ!");
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            };
+
+            function parseTimeToSeconds(timeStr) {
+                let parts = timeStr.split(':');
+                if (parts.length === 2) {
+                    return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+                }
+                return 999999;
+            }
+
+            function saveCurrentScore() {
+                let name = document.getElementById('player-name').value.trim() || 'Người chơi vô danh';
+                let timeStr = document.getElementById('timer').innerText;
+                let seconds = parseTimeToSeconds(timeStr);
+                let diffSelect = document.getElementById('diff-select');
+                let diffText = diffSelect.options[diffSelect.selectedIndex].text;
+                let diffVal = diffSelect.value;
+
+                let scoreRecord = {
+                    name: name,
+                    size: gridSize,
+                    diffText: diffText,
+                    diffValue: diffVal,
+                    timeStr: timeStr,
+                    seconds: seconds,
+                    date: new Date().toLocaleDateString('vi-VN', {hour: '2-digit', minute:'2-digit'})
+                };
+
+                let scores = JSON.parse(localStorage.getItem('sudoku_scores')) || [];
+                scores.push(scoreRecord);
+                localStorage.setItem('sudoku_scores', JSON.stringify(scores));
+            }
+
+            function renderLeaderboard() {
+                let scores = JSON.parse(localStorage.getItem('sudoku_scores')) || [];
+                
+                if (currentFilterSize !== 'all') {
+                    let filterVal = parseInt(currentFilterSize);
+                    scores = scores.filter(s => s.size === filterVal);
+                }
+                
+                scores.sort((a, b) => a.seconds - b.seconds);
+                
+                let tbody = document.getElementById('leaderboard-list');
+                tbody.innerHTML = '';
+                
+                if (scores.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-xs text-indigo-400 italic">Chưa có thành tích</td></tr>`;
+                    return;
+                }
+                
+                scores.forEach((s, idx) => {
+                    let tr = document.createElement('tr');
+                    tr.className = "border-b border-indigo-100 hover:bg-white/30 text-xs";
+                    
+                    let rankIcon = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`;
+                    let rankClass = idx < 3 ? 'text-sm font-bold' : '';
+                    
+                    tr.innerHTML = `
+                        <td class="py-2 px-1 text-center ${rankClass}">${rankIcon}</td>
+                        <td class="py-2 px-1 font-semibold truncate max-w-[80px]" title="${s.name}">${s.name}</td>
+                        <td class="py-2 px-1 text-center text-[10px] text-indigo-700">${s.size}x${s.size}<br><span class="opacity-70">${s.diffText}</span></td>
+                        <td class="py-2 px-1 text-right font-mono text-pink-600 font-bold">${s.timeStr}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            const lbModal = document.getElementById('leaderboard-modal');
+            const lbContent = document.getElementById('leaderboard-content');
+
+            function openLeaderboard() {
+                renderLeaderboard();
+                lbModal.classList.remove('hidden');
+                lbModal.classList.add('flex');
+                
+                requestAnimationFrame(() => {
+                    lbModal.classList.remove('opacity-0');
+                    lbModal.classList.add('opacity-100');
+                    lbContent.classList.remove('scale-90');
+                    lbContent.classList.add('scale-100');
+                });
+            }
+
+            function closeLeaderboard() {
+                lbModal.classList.remove('opacity-100');
+                lbModal.classList.add('opacity-0');
+                lbContent.classList.remove('scale-100');
+                lbContent.classList.add('scale-90');
+                
+                setTimeout(() => {
+                    lbModal.classList.remove('flex');
+                    lbModal.classList.add('hidden');
+                }, 300);
+            }
+
+            document.getElementById('btn-leaderboard').onclick = openLeaderboard;
+            document.getElementById('btn-close-leaderboard').onclick = closeLeaderboard;
+
+            lbModal.addEventListener('click', (e) => {
+                if (e.target === lbModal) {
+                    closeLeaderboard();
+                }
+            });
+
+            document.querySelectorAll('#leaderboard-size-tabs .tab-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    document.querySelectorAll('#leaderboard-size-tabs .tab-btn').forEach(b => {
+                        b.className = 'tab-btn px-2.5 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-xs font-semibold whitespace-nowrap';
+                    });
+                    e.target.className = 'tab-btn px-2.5 py-0.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold whitespace-nowrap';
+                    currentFilterSize = e.target.dataset.size;
+                    renderLeaderboard();
+                };
+            });
 
             function initGame() {
                 gridSize = parseInt(document.getElementById('size-select').value);
