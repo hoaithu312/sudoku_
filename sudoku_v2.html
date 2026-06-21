@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Hiện Đại - Magic Edition</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(-45deg, #c7d2fe, #fbcfe8, #bae6fd, #e9d5ff);
+            background-size: 400% 400%;
+            animation: gradient-bg 15s ease infinite;
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #1e293b;
+        }
+        
+        @keyframes gradient-bg {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Ambient floating orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            animation: float 10s ease-in-out infinite;
+        }
+        .orb-1 { width: 300px; height: 300px; background: rgba(167, 139, 250, 0.6); top: -50px; left: -50px; }
+        .orb-2 { width: 400px; height: 400px; background: rgba(244, 114, 182, 0.5); bottom: -100px; right: -100px; animation-delay: -5s; }
+        .orb-3 { width: 250px; height: 250px; background: rgba(56, 189, 248, 0.5); top: 40%; left: 60%; animation: float-reverse 12s ease-in-out infinite; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-30px) scale(1.1); }
+        }
+        @keyframes float-reverse {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(30px) scale(0.9); }
+        }
+        
+        /* Ẩn con trỏ chuột trong ô nhập liệu */
+        .sudoku-cell {
+            caret-color: transparent;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        /* Trạng thái tạm dừng - Ẩn hoàn toàn số */
+        .game-paused .sudoku-cell {
+            color: transparent !important;
+            text-shadow: none !important;
+        }
+
+        /* Hiệu ứng khi được chọn/focus */
+        .sudoku-cell:focus {
+            z-index: 20;
+            box-shadow: 0 0 15px rgba(236, 72, 153, 0.4); /* Pink glow */
+            border-radius: 6px;
+            outline: none;
+            background-color: rgba(255, 255, 255, 0.95) !important;
+        }
+        
+        /* Cảnh báo trùng lặp */
+        @keyframes blink-bg-red {
+            0%, 100% { background-color: rgba(254, 226, 226, 0.9); box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.2); }
+            50% { background-color: rgba(254, 202, 202, 0.9); box-shadow: inset 0 0 20px rgba(239, 68, 68, 0.5); }
+        }
+        .duplicate {
+            color: #ef4444 !important;
+            border-color: #ef4444 !important;
+            animation: blink-bg-red 1.2s infinite !important;
+            z-index: 15;
+            text-shadow: 0 0 5px rgba(239, 68, 68, 0.3);
+        }
+        
+        /* Các ô cùng hàng, cột hoặc khối */
+        .highlight-group {
+            background-color: rgba(224, 231, 255, 0.6) !important;
+            backdrop-filter: blur(4px);
+        }
+        
+        /* Ô đang được chọn (không focus) */
+        .highlight-cell {
+            background-color: rgba(199, 210, 254, 0.8) !important;
+            z-index: 5;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+        }
+        
+        /* Các ô cố định từ đầu */
+        .fixed-cell {
+            background-color: rgba(255, 255, 255, 0.6);
+            color: #312e81; /* Indigo 900 */
+            font-weight: 800;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        /* Ẩn mũi tên lên xuống mặc định của thẻ input type number/text */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        /* Hiệu ứng pop in khi tạo lưới mới */
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.5) rotate(-10deg); }
+            70% { transform: scale(1.1) rotate(5deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0); }
+        }
+        .animate-pop {
+            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+        
+        /* Fancy animated gradient text */
+        .text-gradient-animated {
+            background: linear-gradient(to right, #4f46e5, #ec4899, #8b5cf6, #4f46e5);
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: shine 3s linear infinite;
+        }
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+
+        /* Glass Panel Styling */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+        }
+        
+        .glass-button {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .glass-button:hover {
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.2);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-2 sm:p-4 relative">
+    
+    <!-- Ambient Orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <!-- Container chính -->
+    <div class="max-w-[400px] w-full glass-panel rounded-[1.5rem] p-5 sm:p-6 relative z-10">
+        
+        <!-- Tiêu đề -->
+        <div class="text-center mb-4">
+            <h1 class="text-4xl sm:text-5xl font-black text-gradient-animated mb-1 drop-shadow-sm">
+                Sudoku
+            </h1>
+            <p class="text-indigo-600 font-bold tracking-widest uppercase text-xs sm:text-sm opacity-80">Magic Edition</p>
+        </div>
+
+        <!-- Công cụ điều khiển -->
+        <div class="flex flex-wrap justify-between items-center gap-2 mb-4 bg-white/40 p-2 rounded-2xl border border-white/50 backdrop-blur-md shadow-inner">
+            <select id="size-select" class="px-2 py-1.5 text-sm sm:text-base bg-white/70 rounded-xl border border-white/50 shadow-sm focus:ring-2 focus:ring-pink-400 outline-none font-semibold text-indigo-800 cursor-pointer transition hover:bg-white">
+                <option value="5">Lưới 5x5</option>
+                <option value="6">Lưới 6x6</option>
+                <option value="7">Lưới 7x7</option>
+                <option value="8">Lưới 8x8</option>
+                <option value="9" selected>Lưới 9x9</option>
+            </select>
+            
+            <select id="diff-select" class="px-2 py-1.5 text-sm sm:text-base bg-white/70 rounded-xl border border-white/50 shadow-sm focus:ring-2 focus:ring-pink-400 outline-none font-semibold text-indigo-800 cursor-pointer transition hover:bg-white">
+                <option value="easy">Dễ</option>
+                <option value="medium" selected>Trung Bình</option>
+                <option value="hard">Khó</option>
+            </select>
+            
+            <div class="flex items-center text-base sm:text-lg font-bold text-pink-600 bg-white/70 px-2 py-1.5 rounded-xl shadow-sm border border-white/50">
+                ⏱ <span id="timer" class="ml-1 tracking-wider">00:00</span>
+            </div>
+        </div>
+
+        <!-- Bàn cờ Sudoku (được bọc trong relative wrapper để hỗ trợ overlay làm mờ) -->
+        <div class="relative w-full mb-4">
+            <div id="grid-container" class="grid border-[3px] border-indigo-300/50 rounded-2xl overflow-hidden w-full bg-white/20 shadow-[0_10px_30px_rgba(99,102,241,0.2)] backdrop-blur-md" style="aspect-ratio: 1 / 1;">
+                <!-- Các ô input được sinh ra bằng JS -->
+            </div>
+            
+            <!-- Overlay Bắt đầu / Tạm dừng -->
+            <div id="grid-overlay" style="-webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);" class="absolute inset-0 flex flex-col items-center justify-center bg-indigo-950/80 rounded-2xl z-30 transition-all duration-300">
+                <button id="btn-overlay-play" class="px-6 py-4 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-600 text-white font-black text-xl rounded-2xl shadow-[0_10px_25px_rgba(236,72,153,0.5)] hover:shadow-[0_15px_35px_rgba(236,72,153,0.7)] active:scale-95 transition-all transform hover:-translate-y-1">
+                    ▶️ Bắt Đầu Chơi
+                </button>
+            </div>
+        </div>
+
+        <!-- Bàn phím số ảo -->
+        <div id="numpad" class="grid grid-cols-5 gap-1.5 sm:gap-2 mb-4">
+            <!-- Nút bấm tạo bằng JS -->
+        </div>
+
+        <!-- Các nút hành động -->
+        <div class="flex gap-2">
+            <button id="btn-new" class="flex-1 py-2 sm:py-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white rounded-xl font-bold text-base hover:opacity-90 active:scale-95 transition-all shadow-[0_10px_20px_rgba(236,72,153,0.3)] hover:shadow-[0_15px_25px_rgba(236,72,153,0.4)] hover:-translate-y-1">
+                ✨ Chơi Mới
+            </button>
+            <button id="btn-pause-action" class="py-2 px-3 sm:px-4 bg-indigo-600 text-white rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1 min-w-[100px] text-base">
+                <span id="pause-icon">⏸</span> <span id="pause-text">Tạm Dừng</span>
+            </button>
+            <button id="btn-clear-board" class="py-2 px-3 sm:px-4 bg-white/60 text-rose-600 border border-white rounded-xl font-bold hover:bg-white active:scale-95 transition-all shadow-sm hover:shadow-md backdrop-blur-md hover:-translate-y-1 text-base">
+                Làm Lại
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Chúc mừng -->
+    <div id="win-modal" class="fixed inset-0 bg-indigo-900/40 backdrop-blur-md hidden items-center justify-center z-50 transition-opacity duration-300 opacity-0">
+        <div id="win-content" class="glass-panel p-8 rounded-[2.5rem] text-center max-w-sm w-full mx-4 transform scale-90 transition-transform duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.2)]">
+            <div class="text-7xl mb-4 animate-bounce">🎉</div>
+            <h2 class="text-5xl font-black text-gradient-animated mb-2">Tuyệt Vời!</h2>
+            <p class="text-indigo-800 font-bold mb-6">Bạn đã giải mã thành công!</p>
+            
+            <div class="bg-white/50 rounded-2xl p-5 mb-8 text-left space-y-3 text-indigo-900 border border-white/60 shadow-inner">
+                <div class="flex justify-between items-center"><span class="font-semibold text-indigo-500">Kích thước</span> <strong id="stat-size" class="text-xl bg-white px-3 py-1 rounded-lg shadow-sm">9x9</strong></div>
+                <div class="flex justify-between items-center"><span class="font-semibold text-indigo-500">Độ khó</span> <strong id="stat-diff" class="text-xl bg-white px-3 py-1 rounded-lg shadow-sm">Trung bình</strong></div>
+                <div class="flex justify-between items-center"><span class="font-semibold text-pink-500">Thời gian</span> <strong id="stat-time" class="text-xl font-mono text-pink-600 bg-white px-3 py-1 rounded-lg shadow-sm">00:00</strong></div>
+            </div>
+            
+            <button id="btn-play-again" class="w-full py-4 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-[0_10px_20px_rgba(236,72,153,0.4)] text-xl hover:shadow-[0_15px_30px_rgba(236,72,153,0.6)] hover:-translate-y-1">
+                🚀 Chơi Tiếp Nào!
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let gridSize = 9;
+            let currentPuzzle = [];
+            let selectedCell = null;
+            let timerInterval;
+            let accumulatedTime = 0; // ms
+            let timerStartTime;
+            let isPaused = true;
+            let gameStarted = false;
+
+            const gridContainer = document.getElementById('grid-container');
+            const numpad = document.getElementById('numpad');
+
+            function getBlockSize(size) {
+                if (size === 6) return { r: 2, c: 3 };
+                if (size === 8) return { r: 4, c: 2 };
+                if (size === 9) return { r: 3, c: 3 };
+                return { r: size, c: size }; 
+            }
+
+            function generateSudoku(size) {
+                let board = Array(size).fill().map(() => Array(size).fill(0));
+                let blocks = getBlockSize(size);
+                
+                function isValid(board, row, col, num) {
+                    for (let i = 0; i < size; i++) {
+                        if (board[row][i] === num) return false;
+                        if (board[i][col] === num) return false;
+                    }
+                    if (blocks.r * blocks.c === size) {
+                        let startRow = Math.floor(row / blocks.r) * blocks.r;
+                        let startCol = Math.floor(col / blocks.c) * blocks.c;
+                        for (let i = 0; i < blocks.r; i++) {
+                            for (let j = 0; j < blocks.c; j++) {
+                                if (board[startRow + i][startCol + j] === num) return false;
+                            }
+                        }
+                    }
+                    return true;
+                }
+
+                function solve(board, r = 0, c = 0) {
+                    if (r === size) return true;
+                    if (c === size) return solve(board, r + 1, 0);
+                    if (board[r][c] !== 0) return solve(board, r, c + 1);
+                    
+                    let nums = Array.from({length: size}, (_, i) => i + 1);
+                    for (let i = nums.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [nums[i], nums[j]] = [nums[j], nums[i]];
+                    }
+                    
+                    for (let num of nums) {
+                        if (isValid(board, r, c, num)) {
+                            board[r][c] = num;
+                            if (solve(board, r, c + 1)) return true;
+                            board[r][c] = 0;
+                        }
+                    }
+                    return false;
+                }
+                
+                solve(board);
+                return board;
+            }
+
+            function createPuzzle(solution, difficulty) {
+                let size = solution.length;
+                let puzzle = solution.map(row => [...row]);
+                let cellsToRemove = 0;
+                
+                if (difficulty === 'easy') cellsToRemove = Math.floor(size * size * 0.35);
+                else if (difficulty === 'medium') cellsToRemove = Math.floor(size * size * 0.5);
+                else if (difficulty === 'hard') cellsToRemove = Math.floor(size * size * 0.65);
+                
+                let removed = 0;
+                while (removed < cellsToRemove) {
+                    let r = Math.floor(Math.random() * size);
+                    let c = Math.floor(Math.random() * size);
+                    if (puzzle[r][c] !== 0) {
+                        puzzle[r][c] = 0;
+                        removed++;
+                    }
+                }
+                return puzzle;
+            }
+
+            function renderGrid() {
+                gridContainer.innerHTML = '';
+                gridContainer.style.gridTemplateColumns = `repeat(${gridSize}, minmax(0, 1fr))`;
+                gridContainer.style.gridTemplateRows = `repeat(${gridSize}, minmax(0, 1fr))`;
+                
+                let blocks = getBlockSize(gridSize);
+
+                for (let r = 0; r < gridSize; r++) {
+                    for (let c = 0; c < gridSize; c++) {
+                        let val = currentPuzzle[r][c];
+                        let input = document.createElement('input');
+                        input.type = 'text';
+                        input.inputMode = 'none';
+                        input.dataset.row = r;
+                        input.dataset.col = c;
+                        
+                        let classes = [
+                            'sudoku-cell', 'w-full', 'h-full', 'text-center', 
+                            gridSize >= 8 ? 'text-base sm:text-xl' : 'text-xl sm:text-2xl', 
+                            'font-bold', 'm-0', 'pb-0.5', 'cursor-pointer', 'bg-white/40',
+                            'flex', 'items-center', 'justify-center'
+                        ];
+                        
+                        if (blocks.r * blocks.c === gridSize) {
+                            if ((r + 1) % blocks.r === 0 && r !== gridSize - 1) {
+                                classes.push('border-b-[3px]', 'border-b-indigo-400/50');
+                            } else if (r !== gridSize - 1) {
+                                classes.push('border-b', 'border-b-indigo-200/50');
+                            }
+                            
+                            if ((c + 1) % blocks.c === 0 && c !== gridSize - 1) {
+                                classes.push('border-r-[3px]', 'border-r-indigo-400/50');
+                            } else if (c !== gridSize - 1) {
+                                classes.push('border-r', 'border-r-indigo-200/50');
+                            }
+                        } else {
+                            if (r !== gridSize - 1) classes.push('border-b', 'border-b-indigo-200/50');
+                            if (c !== gridSize - 1) classes.push('border-r', 'border-r-indigo-200/50');
+                        }
+                        
+                        if (val !== 0) {
+                            classes.push('fixed-cell');
+                            input.value = val;
+                            input.readOnly = true;
+                        } else {
+                            classes.push('text-blue-600', 'font-black', 'drop-shadow-sm', 'hover:bg-white/80');
+                            input.value = '';
+                        }
+                        
+                        input.style.animationDelay = `${(r * gridSize + c) * 4}ms`;
+                        classes.push('animate-pop');
+
+                        input.className = classes.join(' ');
+                        
+                        input.addEventListener('focus', () => {
+                            if (isPaused) {
+                                input.blur();
+                                return;
+                            }
+                            selectedCell = input;
+                            highlightCells(r, c);
+                        });
+                        
+                        input.addEventListener('keydown', (e) => {
+                            if (isPaused) {
+                                e.preventDefault();
+                                return;
+                            }
+                            let cellR = parseInt(input.dataset.row);
+                            let cellC = parseInt(input.dataset.col);
+                            
+                            if (e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                focusCell(cellR - 1, cellC);
+                            } else if (e.key === 'ArrowDown') {
+                                e.preventDefault();
+                                focusCell(cellR + 1, cellC);
+                            } else if (e.key === 'ArrowLeft') {
+                                e.preventDefault();
+                                focusCell(cellR, cellC - 1);
+                            } else if (e.key === 'ArrowRight') {
+                                e.preventDefault();
+                                focusCell(cellR, cellC + 1);
+                            } else if (e.key === 'Backspace' || e.key === 'Delete') {
+                                e.preventDefault();
+                                if (!input.readOnly) {
+                                    input.value = '';
+                                    checkDuplicates();
+                                }
+                            } else if (/^[1-9]$/.test(e.key)) {
+                                e.preventDefault();
+                                if (!input.readOnly) {
+                                    let num = parseInt(e.key);
+                                    if (num <= gridSize) {
+                                        input.value = num;
+                                        checkDuplicates();
+                                    }
+                                }
+                            }
+                        });
+                        
+                        input.addEventListener('input', (e) => {
+                            if (isPaused) {
+                                e.target.value = '';
+                                return;
+                            }
+                            let val = e.target.value;
+                            if (val.length > 1) val = val.slice(-1);
+                            
+                            if (val !== "") {
+                                if (!/^[1-9]$/.test(val) || parseInt(val) > gridSize) {
+                                    e.target.value = '';
+                                } else {
+                                    e.target.value = val;
+                                }
+                            }
+                            checkDuplicates();
+                        });
+                        
+                        gridContainer.appendChild(input);
+                    }
+                }
+            }
+
+            function renderNumpad() {
+                numpad.innerHTML = '';
+                for (let i = 1; i <= gridSize; i++) {
+                    let btn = document.createElement('button');
+                    btn.className = 'glass-button py-2 sm:py-3 text-indigo-800 font-black text-lg sm:text-xl rounded-xl transition-all';
+                    btn.innerText = i;
+                    btn.onclick = () => fillNumber(i);
+                    numpad.appendChild(btn);
+                }
+
+                let clearBtn = document.createElement('button');
+                clearBtn.className = 'glass-button py-2 sm:py-3 text-rose-500 font-bold text-base rounded-xl transition-all col-span-full mt-1';
+                clearBtn.innerText = 'Xóa (Clear)';
+                clearBtn.onclick = () => fillNumber('');
+                numpad.appendChild(clearBtn);
+            }
+
+            function fillNumber(num) {
+                if (isPaused) return;
+                if (selectedCell && !selectedCell.readOnly) {
+                    selectedCell.value = num;
+                    selectedCell.focus({ preventScroll: true }); 
+                    
+                    checkDuplicates();
+                }
+            }
+
+            function focusCell(r, c) {
+                if (r >= 0 && r < gridSize && c >= 0 && c < gridSize) {
+                    let target = document.querySelector(`.sudoku-cell[data-row="${r}"][data-col="${c}"]`);
+                    if (target) target.focus({ preventScroll: true });
+                }
+            }
+
+            function highlightCells(r, c) {
+                let blocks = getBlockSize(gridSize);
+                let startRow = Math.floor(r / blocks.r) * blocks.r;
+                let startCol = Math.floor(c / blocks.c) * blocks.c;
+
+                document.querySelectorAll('.sudoku-cell').forEach(el => {
+                    el.classList.remove('highlight-group', 'highlight-cell');
+                    let cellR = parseInt(el.dataset.row);
+                    let cellC = parseInt(el.dataset.col);
+                    
+                    if (cellR === r && cellC === c) {
+                        el.classList.add('highlight-cell');
+                    } else if (cellR === r || cellC === c) {
+                        el.classList.add('highlight-group');
+                    } else if (blocks.r * blocks.c === gridSize && 
+                               cellR >= startRow && cellR < startRow + blocks.r &&
+                               cellC >= startCol && cellC < startCol + blocks.c) {
+                        el.classList.add('highlight-group');
+                    }
+                });
+            }
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('sudoku-cell') && !e.target.closest('#numpad')) {
+                    document.querySelectorAll('.sudoku-cell').forEach(el => {
+                        el.classList.remove('highlight-group', 'highlight-cell');
+                    });
+                    selectedCell = null;
+                }
+            });
+
+            function checkDuplicates() {
+                let blocks = getBlockSize(gridSize);
+                let cells = document.querySelectorAll('.sudoku-cell');
+                
+                cells.forEach(c => c.classList.remove('duplicate'));
+                
+                let boardArr = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
+                cells.forEach(c => {
+                    let r = parseInt(c.dataset.row);
+                    let col = parseInt(c.dataset.col);
+                    boardArr[r][col] = parseInt(c.value) || 0;
+                });
+
+                let duplicates = new Set();
+
+                for (let r = 0; r < gridSize; r++) {
+                    for (let c = 0; c < gridSize; c++) {
+                        let num = boardArr[r][c];
+                        if (num === 0) continue;
+                        
+                        for (let i = 0; i < gridSize; i++) {
+                            if (i !== c && boardArr[r][i] === num) {
+                                duplicates.add(`${r}-${c}`);
+                                duplicates.add(`${r}-${i}`);
+                            }
+                        }
+                        for (let i = 0; i < gridSize; i++) {
+                            if (i !== r && boardArr[i][c] === num) {
+                                duplicates.add(`${r}-${c}`);
+                                duplicates.add(`${i}-${c}`);
+                            }
+                        }
+                        if (blocks.r * blocks.c === gridSize) {
+                            let startRow = Math.floor(r / blocks.r) * blocks.r;
+                            let startCol = Math.floor(c / blocks.c) * blocks.c;
+                            for (let i = 0; i < blocks.r; i++) {
+                                for (let j = 0; j < blocks.c; j++) {
+                                    let currR = startRow + i;
+                                    let currC = startCol + j;
+                                    if ((currR !== r || currC !== c) && boardArr[currR][currC] === num) {
+                                        duplicates.add(`${r}-${c}`);
+                                        duplicates.add(`${currR}-${currC}`);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                duplicates.forEach(id => {
+                    let [r, c] = id.split('-');
+                    let el = document.querySelector(`.sudoku-cell[data-row="${r}"][data-col="${c}"]`);
+                    if (el) el.classList.add('duplicate');
+                });
+
+                checkWin(boardArr, duplicates.size);
+            }
+
+            function checkWin(boardArr, duplicateCount) {
+                if (duplicateCount > 0) return;
+                
+                for (let r = 0; r < gridSize; r++) {
+                    for (let c = 0; c < gridSize; c++) {
+                        if (boardArr[r][c] === 0) return;
+                    }
+                }
+                
+                pauseTimer();
+                showWinPopup();
+            }
+
+            function setPlayState(playing) {
+                const overlay = document.getElementById('grid-overlay');
+                const overlayBtn = document.getElementById('btn-overlay-play');
+                const pauseIcon = document.getElementById('pause-icon');
+                const pauseText = document.getElementById('pause-text');
+                
+                if (playing) {
+                    gameStarted = true;
+                    document.body.classList.remove('game-paused');
+                    overlay.classList.add('opacity-0', 'pointer-events-none');
+                    pauseIcon.innerText = "⏸";
+                    pauseText.innerText = "Tạm Dừng";
+                    resumeTimer();
+                } else {
+                    document.body.classList.add('game-paused');
+                    overlay.classList.remove('opacity-0', 'pointer-events-none');
+                    if (gameStarted) {
+                        overlayBtn.innerText = "▶️ Tiếp Tục Chơi";
+                        pauseIcon.innerText = "▶️";
+                        pauseText.innerText = "Tiếp Tục";
+                    } else {
+                        overlayBtn.innerText = "▶️ Bắt Đầu Chơi";
+                        pauseIcon.innerText = "▶️";
+                        pauseText.innerText = "Bắt Đầu";
+                    }
+                    pauseTimer();
+                }
+            }
+
+            function startTimer() {
+                clearInterval(timerInterval);
+                timerStartTime = Date.now();
+                isPaused = false;
+                timerInterval = setInterval(updateTimer, 200);
+            }
+
+            function pauseTimer() {
+                if (!isPaused) {
+                    accumulatedTime += Date.now() - timerStartTime;
+                    isPaused = true;
+                    clearInterval(timerInterval);
+                }
+            }
+
+            function resumeTimer() {
+                if (isPaused) {
+                    timerStartTime = Date.now();
+                    isPaused = false;
+                    timerInterval = setInterval(updateTimer, 200);
+                }
+            }
+
+            function resetTimer() {
+                clearInterval(timerInterval);
+                accumulatedTime = 0;
+                isPaused = true;
+                document.getElementById('timer').innerText = "00:00";
+            }
+
+            function updateTimer() {
+                let totalMs = accumulatedTime;
+                if (!isPaused) {
+                    totalMs += Date.now() - timerStartTime;
+                }
+                let totalSecs = Math.floor(totalMs / 1000);
+                let m = Math.floor(totalSecs / 60).toString().padStart(2, '0');
+                let s = (totalSecs % 60).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = `${m}:${s}`;
+            }
+
+            function showWinPopup() {
+                document.getElementById('stat-size').innerText = `${gridSize}x${gridSize}`;
+                let diffSelect = document.getElementById('diff-select');
+                document.getElementById('stat-diff').innerText = diffSelect.options[diffSelect.selectedIndex].text;
+                document.getElementById('stat-time').innerText = document.getElementById('timer').innerText;
+                
+                let modal = document.getElementById('win-modal');
+                let content = document.getElementById('win-content');
+                
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                
+                requestAnimationFrame(() => {
+                    modal.classList.remove('opacity-0');
+                    modal.classList.add('opacity-100');
+                    content.classList.remove('scale-90');
+                    content.classList.add('scale-100');
+                });
+                
+                var end = Date.now() + (3 * 1000);
+                var colors = ['#6366f1', '#ec4899', '#8b5cf6', '#38bdf8'];
+
+                (function frame() {
+                    confetti({
+                        particleCount: 6,
+                        angle: 60,
+                        spread: 55,
+                        origin: { x: 0 },
+                        colors: colors
+                    });
+                    confetti({
+                        particleCount: 6,
+                        angle: 120,
+                        spread: 55,
+                        origin: { x: 1 },
+                        colors: colors
+                    });
+
+                    if (Date.now() < end) {
+                        requestAnimationFrame(frame);
+                    }
+                }());
+            }
+
+            document.getElementById('btn-new').onclick = initGame;
+            
+            document.getElementById('btn-clear-board').onclick = () => {
+                document.querySelectorAll('.sudoku-cell:not(.fixed-cell)').forEach(el => {
+                    el.value = '';
+                });
+                checkDuplicates();
+                resetTimer();
+                gameStarted = false;
+                setPlayState(false);
+            };
+
+            document.getElementById('btn-overlay-play').onclick = () => {
+                setPlayState(true);
+            };
+
+            document.getElementById('btn-pause-action').onclick = () => {
+                if (!gameStarted || isPaused) {
+                    setPlayState(true);
+                } else {
+                    setPlayState(false);
+                }
+            };
+
+            document.getElementById('btn-play-again').onclick = () => {
+                let modal = document.getElementById('win-modal');
+                let content = document.getElementById('win-content');
+                
+                modal.classList.remove('opacity-100');
+                modal.classList.add('opacity-0');
+                content.classList.remove('scale-100');
+                content.classList.add('scale-90');
+                
+                setTimeout(() => {
+                    modal.classList.remove('flex');
+                    modal.classList.add('hidden');
+                    initGame();
+                }, 500);
+            };
+
+            function initGame() {
+                gridSize = parseInt(document.getElementById('size-select').value);
+                let diff = document.getElementById('diff-select').value;
+                
+                let solution = generateSudoku(gridSize);
+                currentPuzzle = createPuzzle(solution, diff);
+                
+                renderGrid();
+                renderNumpad();
+                
+                resetTimer();
+                gameStarted = false;
+                setPlayState(false);
+            }
+
+            document.getElementById('size-select').addEventListener('change', initGame);
+            document.getElementById('diff-select').addEventListener('change', initGame);
+
+            initGame();
+        });
+    </script>
+</body>
+</html>
