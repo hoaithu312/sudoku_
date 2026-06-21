@@ -20,17 +20,19 @@
             color: #1e293b;
         }
 
-        /* Ambient floating orbs */
+        /* Ambient floating orbs (Safari Optimized) */
         .orb {
             position: fixed;
             border-radius: 50%;
-            filter: blur(80px);
             z-index: -1;
             animation: float 10s ease-in-out infinite;
+            pointer-events: none;
+            will-change: transform;
         }
-        .orb-1 { width: 300px; height: 300px; background: rgba(167, 139, 250, 0.6); top: -50px; left: -50px; }
-        .orb-2 { width: 400px; height: 400px; background: rgba(244, 114, 182, 0.5); bottom: -100px; right: -100px; animation-delay: -5s; }
-        .orb-3 { width: 250px; height: 250px; background: rgba(56, 189, 248, 0.5); top: 40%; left: 60%; animation: float-reverse 12s ease-in-out infinite; }
+        /* Dùng radial-gradient thay cho filter: blur() giúp mượt hơn gấp nhiều lần trên Safari/iOS */
+        .orb-1 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(167, 139, 250, 0.6) 0%, rgba(167, 139, 250, 0) 70%); top: -100px; left: -100px; }
+        .orb-2 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(244, 114, 182, 0.5) 0%, rgba(244, 114, 182, 0) 70%); bottom: -150px; right: -150px; animation-delay: -5s; }
+        .orb-3 { width: 350px; height: 350px; background: radial-gradient(circle, rgba(56, 189, 248, 0.5) 0%, rgba(56, 189, 248, 0) 70%); top: 30%; left: 50%; animation: float-reverse 12s ease-in-out infinite; }
 
         @keyframes float {
             0%, 100% { transform: translateY(0) scale(1); }
@@ -48,7 +50,7 @@
             align-items: center;
             justify-content: center;
             caret-color: transparent;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: background-color 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             user-select: none;
             -webkit-user-select: none;
         }
@@ -156,7 +158,8 @@
             -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.6);
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
-            transform: translateZ(0); /* Kích hoạt hardware acceleration */
+            transform: translate3d(0, 0, 0); /* Kích hoạt phần cứng mạnh hơn cho Safari */
+            will-change: transform;
         }
         
         .glass-button {
@@ -218,25 +221,25 @@
         </div>
 
         <!-- Công cụ điều khiển -->
-        <div class="flex flex-wrap justify-between items-center gap-2 mb-4 bg-white/40 p-2 rounded-2xl border border-white/50 backdrop-blur-md shadow-inner">
-            <select id="size-select" class="px-2 py-1.5 text-sm sm:text-base bg-white/70 rounded-xl border border-white/50 shadow-sm focus:ring-2 focus:ring-pink-400 outline-none font-semibold text-indigo-800 cursor-pointer transition hover:bg-white">
-                <option value="3">Lưới 3x3</option>
-                <option value="4">Lưới 4x4</option>
-                <option value="5">Lưới 5x5</option>
-                <option value="6">Lưới 6x6</option>
-                <option value="7">Lưới 7x7</option>
-                <option value="8">Lưới 8x8</option>
-                <option value="9" selected>Lưới 9x9</option>
+        <div class="flex justify-between items-center gap-1.5 sm:gap-2 mb-4 bg-white/40 p-1.5 sm:p-2 rounded-2xl border border-white/50 backdrop-blur-md shadow-inner w-full">
+            <select id="size-select" class="flex-auto min-w-0 px-1.5 sm:px-2 py-1.5 text-[11px] sm:text-xs md:text-sm bg-white/70 rounded-xl border border-white/50 shadow-sm focus:ring-2 focus:ring-pink-400 outline-none font-bold text-indigo-900 cursor-pointer transition hover:bg-white truncate text-center [text-align-last:center]">
+                <option value="3">3x3</option>
+                <option value="4">4x4</option>
+                <option value="5">5x5</option>
+                <option value="6">6x6</option>
+                <option value="7">7x7</option>
+                <option value="8">8x8</option>
+                <option value="9" selected>9x9</option>
             </select>
             
-            <select id="diff-select" class="px-2 py-1.5 text-sm sm:text-base bg-white/70 rounded-xl border border-white/50 shadow-sm focus:ring-2 focus:ring-pink-400 outline-none font-semibold text-indigo-800 cursor-pointer transition hover:bg-white">
+            <select id="diff-select" class="flex-auto min-w-0 px-1.5 sm:px-2 py-1.5 text-[11px] sm:text-xs md:text-sm bg-white/70 rounded-xl border border-white/50 shadow-sm focus:ring-2 focus:ring-pink-400 outline-none font-bold text-indigo-900 cursor-pointer transition hover:bg-white truncate text-center [text-align-last:center]">
                 <option value="easy">Dễ</option>
                 <option value="medium" selected>Trung Bình</option>
                 <option value="hard">Khó</option>
                 <option value="very_hard">Rất Khó</option>
             </select>
             
-            <div class="flex items-center text-base sm:text-lg font-bold text-pink-600 bg-white/70 px-2 py-1.5 rounded-xl shadow-sm border border-white/50">
+            <div class="flex-none flex items-center justify-center text-xs sm:text-sm md:text-base font-bold text-pink-600 bg-white/70 px-2 py-1.5 rounded-xl shadow-sm border border-white/50">
                 ⏱ <span id="timer" class="ml-1 tracking-wider">00:00</span>
             </div>
         </div>
@@ -248,7 +251,7 @@
             </div>
             
             <!-- Overlay Bắt đầu / Tạm dừng -->
-            <div id="grid-overlay" style="-webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);" class="absolute inset-0 flex flex-col items-center justify-center bg-indigo-950/80 rounded-2xl z-30 transition-all duration-300">
+            <div id="grid-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-indigo-950/95 rounded-2xl z-30 transition-opacity duration-300">
                 <button id="btn-overlay-play" class="px-6 py-4 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-600 text-white font-black text-xl rounded-2xl shadow-[0_10px_25px_rgba(236,72,153,0.5)] hover:shadow-[0_15px_35px_rgba(236,72,153,0.7)] active:scale-95 transition-all transform hover:-translate-y-1">
                     ▶️ Bắt Đầu Chơi
                 </button>
@@ -261,17 +264,17 @@
         </div>
 
         <!-- Các nút hành động -->
-        <div class="grid grid-cols-4 gap-2">
-            <button id="btn-new" class="py-2 sm:py-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white rounded-xl font-bold text-xs sm:text-sm hover:opacity-90 active:scale-95 transition-all shadow-[0_10px_20px_rgba(236,72,153,0.3)] hover:shadow-[0_15px_25px_rgba(236,72,153,0.4)] hover:-translate-y-1 flex items-center justify-center gap-1">
+        <div class="flex justify-between items-center w-full gap-1 sm:gap-2">
+            <button id="btn-new" class="flex-1 py-2 sm:py-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white rounded-xl font-bold text-[11px] sm:text-sm md:text-base hover:opacity-90 active:scale-95 transition-all shadow-[0_10px_20px_rgba(236,72,153,0.3)] hover:shadow-[0_15px_25px_rgba(236,72,153,0.4)] hover:-translate-y-1 flex items-center justify-center gap-1 whitespace-nowrap">
                 ✨ Mới
             </button>
-            <button id="btn-pause-action" class="py-2 px-1 sm:px-2 bg-indigo-600 text-white rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1 text-xs sm:text-sm">
-                <span id="pause-icon">⏸</span> <span id="pause-text" class="hidden sm:inline">Dừng</span>
+            <button id="btn-pause-action" class="flex-1 py-2 px-1 sm:px-2 bg-indigo-600 text-white rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1 text-[11px] sm:text-sm md:text-base whitespace-nowrap">
+                <span id="pause-icon">⏸</span> <span id="pause-text" class="inline">Dừng</span>
             </button>
-            <button id="btn-pencil" class="py-2 px-1 sm:px-2 bg-white/60 text-amber-600 border-2 border-amber-300 rounded-xl font-bold hover:bg-white hover:border-amber-400 active:scale-95 transition-all shadow-sm hover:shadow-md backdrop-blur-md hover:-translate-y-1 flex items-center justify-center text-sm sm:text-base">
+            <button id="btn-pencil" class="flex-none w-10 sm:w-12 py-2 px-1 sm:px-2 bg-white/60 text-amber-600 border-2 border-amber-300 rounded-xl font-bold hover:bg-white hover:border-amber-400 active:scale-95 transition-all shadow-sm hover:shadow-md backdrop-blur-md hover:-translate-y-1 flex items-center justify-center text-sm sm:text-base">
                 ✏️
             </button>
-            <button id="btn-clear-board" class="py-2 px-1 sm:px-2 bg-white/60 text-rose-600 border border-white rounded-xl font-bold hover:bg-white active:scale-95 transition-all shadow-sm hover:shadow-md backdrop-blur-md hover:-translate-y-1 text-xs sm:text-sm">
+            <button id="btn-clear-board" class="flex-1 py-2 px-1 sm:px-2 bg-white/60 text-rose-600 border-2 border-rose-300 rounded-xl font-bold hover:bg-white hover:border-rose-400 active:scale-95 transition-all shadow-sm hover:shadow-md backdrop-blur-md hover:-translate-y-1 text-[11px] sm:text-sm md:text-base whitespace-nowrap">
                 Làm Lại
             </button>
         </div>
@@ -283,11 +286,11 @@
     </div>
 
     <!-- Modal Chúc mừng -->
-    <div id="win-modal" class="fixed inset-0 bg-indigo-900/40 backdrop-blur-md hidden items-center justify-center z-50 transition-opacity duration-300 opacity-0">
-        <form id="win-content" action="javascript:void(0);" class="glass-panel p-6 rounded-[2.5rem] text-center max-w-sm w-full mx-4 transform scale-90 transition-transform duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.2)]">
+    <div id="win-modal" class="fixed inset-0 bg-indigo-950/70 hidden items-center justify-center z-50 transition-opacity duration-300 opacity-0">
+        <form id="win-content" action="javascript:void(0);" class="bg-gradient-to-br from-white via-indigo-50/95 to-pink-50/95 border border-white/80 p-6 rounded-[2.5rem] text-center max-w-sm w-full mx-4 transform scale-90 transition-transform duration-500 shadow-[0_20px_50px_rgba(30,27,75,0.4)]">
             <div class="text-6xl mb-3 animate-bounce">🎉</div>
-            <h2 class="text-4xl font-black text-gradient-animated mb-2">Tuyệt Vời!</h2>
-            <p class="text-indigo-800 font-bold mb-4">Bạn đã giải mã thành công!</p>
+            <h2 class="text-4xl font-black text-gradient-animated mb-2">Chúc mừng</h2>
+            <p class="text-indigo-800 font-bold mb-4">bạn đã chiến thắng</p>
             
             <div class="bg-white/50 rounded-2xl p-4 mb-6 text-left space-y-2.5 text-indigo-900 border border-white/60 shadow-inner">
                 <div class="flex justify-between items-center"><span class="font-semibold text-indigo-500">Kích thước</span> <strong id="stat-size" class="text-lg bg-white px-3 py-0.5 rounded-lg shadow-sm">9x9</strong></div>
@@ -302,29 +305,29 @@
             </div>
             
             <button type="submit" id="btn-play-again" class="w-full py-3 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-[0_10px_20px_rgba(236,72,153,0.4)] text-lg hover:shadow-[0_15px_30px_rgba(236,72,153,0.6)] hover:-translate-y-1">
-                🚀 Lưu và Chơi Tiếp!
+                💾 Lưu Điểm
             </button>
         </form>
     </div>
 
     <!-- Modal Bảng xếp hạng -->
-    <div id="leaderboard-modal" class="fixed inset-0 bg-indigo-900/40 backdrop-blur-md hidden items-center justify-center z-50 transition-opacity duration-300 opacity-0">
-        <div id="leaderboard-content" class="glass-panel p-5 rounded-[2rem] max-w-sm w-full mx-4 transform scale-90 transition-transform duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.2)] flex flex-col max-h-[85vh]">
+    <div id="leaderboard-modal" class="fixed inset-0 bg-indigo-950/70 hidden items-center justify-center z-50 transition-opacity duration-300 opacity-0">
+        <div id="leaderboard-content" class="bg-gradient-to-br from-white via-indigo-50/95 to-teal-50/95 border border-white/80 p-5 rounded-[2rem] max-w-sm w-full mx-4 transform scale-90 transition-transform duration-500 shadow-[0_20px_50px_rgba(30,27,75,0.4)] flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center mb-3">
                 <h2 class="text-2xl font-black text-gradient-animated flex items-center gap-2">🏆 Xếp Hạng</h2>
                 <button id="btn-close-leaderboard" class="text-indigo-800 hover:text-rose-600 text-xl font-bold transition">&times;</button>
             </div>
             
             <!-- Bộ lọc kích thước -->
-            <div class="flex flex-wrap justify-center gap-1.5 mb-3" id="leaderboard-size-tabs">
-                <button class="tab-btn px-2 py-0.5 bg-indigo-600 text-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="all">Tất cả</button>
-                <button class="tab-btn px-2 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="3">3x3</button>
-                <button class="tab-btn px-2 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="4">4x4</button>
-                <button class="tab-btn px-2 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="5">5x5</button>
-                <button class="tab-btn px-2 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="6">6x6</button>
-                <button class="tab-btn px-2 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="7">7x7</button>
-                <button class="tab-btn px-2 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="8">8x8</button>
-                <button class="tab-btn px-2 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-[11px] font-semibold whitespace-nowrap" data-size="9">9x9</button>
+            <div class="flex justify-between items-center w-full gap-0.5 sm:gap-1 mb-3" id="leaderboard-size-tabs">
+                <button class="tab-btn px-1 sm:px-1.5 py-0.5 bg-indigo-600 text-white rounded-md text-[9px] sm:text-[10px] font-bold whitespace-nowrap" data-size="all">Tất cả</button>
+                <button class="tab-btn px-1 sm:px-1.5 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-md text-[9px] sm:text-[10px] font-bold whitespace-nowrap" data-size="3">3x3</button>
+                <button class="tab-btn px-1 sm:px-1.5 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-md text-[9px] sm:text-[10px] font-bold whitespace-nowrap" data-size="4">4x4</button>
+                <button class="tab-btn px-1 sm:px-1.5 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-md text-[9px] sm:text-[10px] font-bold whitespace-nowrap" data-size="5">5x5</button>
+                <button class="tab-btn px-1 sm:px-1.5 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-md text-[9px] sm:text-[10px] font-bold whitespace-nowrap" data-size="6">6x6</button>
+                <button class="tab-btn px-1 sm:px-1.5 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-md text-[9px] sm:text-[10px] font-bold whitespace-nowrap" data-size="7">7x7</button>
+                <button class="tab-btn px-1 sm:px-1.5 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-md text-[9px] sm:text-[10px] font-bold whitespace-nowrap" data-size="8">8x8</button>
+                <button class="tab-btn px-1 sm:px-1.5 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-md text-[9px] sm:text-[10px] font-bold whitespace-nowrap" data-size="9">9x9</button>
             </div>
 
             <!-- Bảng hiển thị -->
@@ -344,13 +347,18 @@
             </div>
 
             <!-- Nút Export/Import -->
-            <div class="flex justify-between items-center mt-1">
+            <div class="flex justify-between items-center mt-1 mb-4">
                 <button id="btn-export-scores" class="text-[11px] text-indigo-700 bg-white/50 hover:bg-white px-3 py-1.5 rounded-lg font-bold shadow-sm transition-all border border-indigo-100">⬇️ Tải file lưu</button>
                 <label class="text-[11px] text-indigo-700 bg-white/50 hover:bg-white px-3 py-1.5 rounded-lg font-bold shadow-sm transition-all border border-indigo-100 cursor-pointer">
                     ⬆️ Mở file lưu
                     <input type="file" id="btn-import-scores" accept=".json" class="hidden">
                 </label>
             </div>
+            
+            <!-- Nút Chơi Ván Mới bên trong Bảng Xếp Hạng -->
+            <button id="btn-lb-play-again" class="w-full py-3 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-[0_10px_20px_rgba(236,72,153,0.4)] text-lg hover:shadow-[0_15px_30px_rgba(236,72,153,0.6)] hover:-translate-y-1 mt-auto">
+                🚀 Chơi Ván Mới!
+            </button>
 
         </div>
     </div>
@@ -366,6 +374,7 @@
             let isPaused = true;
             let gameStarted = false;
             let isPencilMode = false;
+            let winTimeout = null;
 
             const gridContainer = document.getElementById('grid-container');
             const numpad = document.getElementById('numpad');
@@ -787,6 +796,11 @@
             }
 
             function checkWin(boardArr, duplicateCount) {
+                if (winTimeout) {
+                    clearTimeout(winTimeout);
+                    winTimeout = null;
+                }
+                
                 if (duplicateCount > 0) return;
                 
                 for (let r = 0; r < gridSize; r++) {
@@ -796,10 +810,10 @@
                 }
                 
                 // Thêm độ trễ nhỏ để trình duyệt vẽ số cuối cùng trước khi chạy popup/confetti nặng
-                setTimeout(() => {
+                winTimeout = setTimeout(() => {
                     pauseTimer();
                     showWinPopup();
-                }, 150);
+                }, 300);
             }
 
             function setPlayState(playing) {
@@ -891,31 +905,36 @@
                     content.classList.add('scale-100');
                 });
                 
-                var end = Date.now() + (3 * 1000);
+                var duration = 3 * 1000;
+                var end = Date.now() + duration;
                 var colors = ['#6366f1', '#ec4899', '#8b5cf6', '#38bdf8'];
 
-                (function frame() {
+                // Dùng setInterval bắn theo chùm thay vì rải rác từng frame (requestAnimationFrame) để giảm lag 90%
+                window.confettiInterval = setInterval(function() {
+                    if (Date.now() > end) {
+                        return clearInterval(window.confettiInterval);
+                    }
+
                     confetti({
-                        particleCount: 4,
+                        particleCount: 20, // Giảm nhẹ số lượng để mượt hơn
                         angle: 60,
                         spread: 55,
-                        origin: { x: 0 },
+                        origin: { x: 0, y: 0.7 },
                         colors: colors,
-                        zIndex: 40 // Nổ phía sau win-modal (z-50)
+                        zIndex: 60, // Nổ phía trước win-modal (z-50) để không dính blur/repaint
+                        useWorker: true
                     });
+                    
                     confetti({
-                        particleCount: 4,
+                        particleCount: 20, // Giảm nhẹ số lượng để mượt hơn
                         angle: 120,
                         spread: 55,
-                        origin: { x: 1 },
+                        origin: { x: 1, y: 0.7 },
                         colors: colors,
-                        zIndex: 40 // Nổ phía sau win-modal (z-50)
+                        zIndex: 60, // Nổ phía trước win-modal (z-50) để không dính blur/repaint
+                        useWorker: true
                     });
-
-                    if (Date.now() < end) {
-                        requestAnimationFrame(frame);
-                    }
-                }());
+                }, 250); // Bắn nhịp nhàng mỗi 250ms
             }
 
             document.getElementById('btn-new').onclick = initGame;
@@ -942,35 +961,90 @@
                 }
             };
 
-            // Giải pháp chuẩn: Dùng sự kiện submit của Form thay vì click/touch
-            document.getElementById('win-content').onsubmit = (e) => {
-                e.preventDefault(); // Ngăn trình duyệt tải lại trang
-                
-                // Ép bàn phím ảo ẩn xuống ngay lập tức
-                document.getElementById('player-name').blur();
-                
-                // Tránh trường hợp hàm chạy 2 lần nếu trình duyệt tự phát sinh thêm sự kiện
-                if (document.getElementById('win-modal').classList.contains('hidden')) return;
-
-                saveCurrentScore();
+            // Xử lý Lưu Điểm bằng cả TouchStart và Submit để bỏ qua độ trễ của iOS Safari
+            let isSavingScore = false;
+            
+            function executeSaveScore(e) {
+                if (e) e.preventDefault(); // Chặn mọi hành vi mặc định gây trễ
+                if (isSavingScore) return; // Khoá an toàn chống chạy 2 lần
                 
                 let modal = document.getElementById('win-modal');
-                let content = document.getElementById('win-content');
+                if (modal.classList.contains('hidden')) return;
+
+                isSavingScore = true;
                 
-                modal.classList.remove('opacity-100');
-                modal.classList.add('opacity-0');
-                content.classList.remove('scale-100');
-                content.classList.add('scale-90');
+                // 1. Dọn dẹp pháo hoa ngay lập tức để giải phóng GPU
+                if (typeof window.confettiInterval !== 'undefined') {
+                    clearInterval(window.confettiInterval);
+                }
+                if (typeof confetti !== 'undefined') {
+                    confetti.reset();
+                }
                 
+                // 2. Hiển thị trạng thái đang xử lý để phản hồi cho người dùng ngay lập tức
+                const btnPlayAgain = document.getElementById('btn-play-again');
+                const originalBtnText = btnPlayAgain.innerHTML;
+                btnPlayAgain.innerHTML = '⏳ Đang xử lý...';
+                btnPlayAgain.classList.add('opacity-80', 'pointer-events-none');
+                
+                // 3. Ép bàn phím ảo ẩn xuống
+                document.getElementById('player-name').blur();
+                
+                // 4. Lưu điểm vào bộ nhớ
+                saveCurrentScore();
+                
+                // 5. CHỜ 350ms: Đây là thời gian vàng để iOS gập xong bàn phím ảo.
+                // Nếu chạy animation lúc bàn phím đang gập sẽ làm trình duyệt bị đơ (Drop FPS).
                 setTimeout(() => {
-                    modal.classList.remove('flex');
-                    modal.classList.add('hidden');
-                    initGame();
-                }, 500);
-            };
+                    let content = document.getElementById('win-content');
+                    modal.classList.remove('opacity-100');
+                    modal.classList.add('opacity-0');
+                    content.classList.remove('scale-100');
+                    content.classList.add('scale-90');
+                    
+                    // 6. Đợi modal cũ mờ hẳn rồi mới gọi Bảng Xếp Hạng lên
+                    setTimeout(() => {
+                        modal.classList.remove('flex');
+                        modal.classList.add('hidden');
+                        
+                        // Phục hồi lại nút
+                        btnPlayAgain.innerHTML = originalBtnText;
+                        btnPlayAgain.classList.remove('opacity-80', 'pointer-events-none');
+                        isSavingScore = false; // Mở khoá
+                        
+                        // Tự động chuyển tab BXH sang lưới vừa chơi
+                        currentFilterSize = gridSize.toString();
+                        document.querySelectorAll('#leaderboard-size-tabs .tab-btn').forEach(b => {
+                            if (b.dataset.size === currentFilterSize) {
+                                b.className = 'tab-btn px-2 py-0.5 bg-indigo-600 text-white rounded-lg text-[11px] font-semibold whitespace-nowrap';
+                            } else {
+                                b.className = 'tab-btn px-2 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-[11px] font-semibold whitespace-nowrap';
+                            }
+                        });
+                        
+                        // Mở bảng xếp hạng lên (gọi hàm này sẽ kèm renderLeaderboard)
+                        openLeaderboard();
+                    }, 350); // Chờ 350ms cho hiệu ứng mờ của win-modal
+                }, 400); // Chờ 400ms cho bàn phím iOS gập xong hoàn toàn
+            }
+
+            const btnPlayAgain = document.getElementById('btn-play-again');
+            // Cảm ứng cực nhạy cho điện thoại/iPad
+            btnPlayAgain.addEventListener('touchstart', executeSaveScore, {passive: false});
+            // Chuột click cho máy tính
+            btnPlayAgain.addEventListener('mousedown', executeSaveScore);
+            // Phím Enter trên bàn phím ảo
+            document.getElementById('win-content').onsubmit = executeSaveScore;
 
             // Quản lý cơ sở dữ liệu JSON LocalStorage & Bảng xếp hạng
             let currentFilterSize = 'all';
+            let lastSavedScoreId = null;
+
+            // Xử lý sự kiện nút Chơi ván mới trong Bảng Xếp Hạng
+            document.getElementById('btn-lb-play-again').onclick = () => {
+                closeLeaderboard();
+                setTimeout(initGame, 300);
+            };
 
             document.getElementById('btn-export-scores').onclick = () => {
                 let scores = localStorage.getItem('sudoku_scores') || '[]';
@@ -1023,6 +1097,7 @@
                 let diffVal = diffSelect.value;
 
                 let scoreRecord = {
+                    id: Date.now(),
                     name: name,
                     size: gridSize,
                     diffText: diffText,
@@ -1031,6 +1106,8 @@
                     seconds: seconds,
                     date: new Date().toLocaleDateString('vi-VN', {hour: '2-digit', minute:'2-digit'})
                 };
+                
+                lastSavedScoreId = scoreRecord.id;
 
                 let scores = JSON.parse(localStorage.getItem('sudoku_scores')) || [];
                 scores.push(scoreRecord);
@@ -1078,8 +1155,10 @@
                         tbody.appendChild(trHeader);
                     }
                     
+                    let isNewScore = s.id && s.id === lastSavedScoreId;
                     let tr = document.createElement('tr');
-                    tr.className = "border-b border-indigo-100/50 hover:bg-white/30 text-xs transition-colors";
+                    let highlightClass = isNewScore ? "bg-pink-100/80 border-pink-300 relative z-10 shadow-[0_0_15px_rgba(236,72,153,0.3)] animate-pulse" : "hover:bg-white/30";
+                    tr.className = `border-b border-indigo-100/50 text-xs transition-colors ${highlightClass}`;
                     
                     let rankIcon = rankInGroup === 0 ? '🥇' : rankInGroup === 1 ? '🥈' : rankInGroup === 2 ? '🥉' : `${rankInGroup + 1}`;
                     let rankClass = rankInGroup < 3 ? 'text-sm font-bold' : '';
@@ -1134,9 +1213,9 @@
             document.querySelectorAll('#leaderboard-size-tabs .tab-btn').forEach(btn => {
                 btn.onclick = (e) => {
                     document.querySelectorAll('#leaderboard-size-tabs .tab-btn').forEach(b => {
-                        b.className = 'tab-btn px-2.5 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-lg text-xs font-semibold whitespace-nowrap';
+                        b.className = 'tab-btn px-1 sm:px-1.5 py-0.5 bg-white/50 text-indigo-900 hover:bg-white rounded-md text-[9px] sm:text-[10px] font-bold whitespace-nowrap';
                     });
-                    e.target.className = 'tab-btn px-2.5 py-0.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold whitespace-nowrap';
+                    e.target.className = 'tab-btn px-1 sm:px-1.5 py-0.5 bg-indigo-600 text-white rounded-md text-[9px] sm:text-[10px] font-bold whitespace-nowrap';
                     currentFilterSize = e.target.dataset.size;
                     renderLeaderboard();
                 };
